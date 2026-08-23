@@ -1,0 +1,10 @@
+# Secrets — only .env.example is tracked
+.env
+.env.*
+!.env.example
+
+# dependencies
+node_modules/
+
+# macOS
+.DS_Store

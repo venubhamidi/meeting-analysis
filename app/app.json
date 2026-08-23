@@ -1,0 +1,42 @@
+{
+  "expo": {
+    "name": "Meeting Intelligence",
+    "slug": "meeting-intelligence",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "light",
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.meetingintelligence.app",
+      "infoPlist": {
+        "NSMicrophoneUsageDescription": "Records your meetings for transcription and summaries.",
+        "UIBackgroundModes": ["audio"]
+      }
+    },
+    "android": {
+      "package": "com.meetingintelligence.app",
+      "permissions": ["android.permission.RECORD_AUDIO"],
+      "adaptiveIcon": {
+        "backgroundColor": "#E6F4FE",
+        "foregroundImage": "./assets/android-icon-foreground.png",
+        "backgroundImage": "./assets/android-icon-background.png",
+        "monochromeImage": "./assets/android-icon-monochrome.png"
+      },
+      "predictiveBackGestureEnabled": false
+    },
+    "web": {
+      "favicon": "./assets/favicon.png"
+    },
+    "plugins": [
+      [
+        "expo-audio",
+        {
+          "microphonePermission": "Records your meetings for transcription and summaries."
+        }
+      ],
+      "expo-sqlite",
+      "expo-dev-client"
+    ]
+  }
+}
