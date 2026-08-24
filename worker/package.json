@@ -7,7 +7,8 @@
     "migrate": "tsx src/migrate.ts",
     "test": "tsx --test tests/*.test.ts",
     "test:live": "LIVE_DB=1 tsx --test tests/live.test.ts",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "test:pg": "TEST_PG_URL=postgresql://postgres:test@localhost:55432/meetings_test tsx --test tests/*.test.ts"
   },
   "dependencies": {
     "pg": "^8.23.0"

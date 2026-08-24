@@ -1,12 +1,28 @@
 import { PGlite } from '@electric-sql/pglite';
 import type { Sql } from '../src/sql.js';
 import { migrate } from '../src/migrate.js';
+import { freshSchema, PG_URL } from './pg.js';
 
 /**
- * A migrated, throwaway Postgres in-process. PGlite is single-connection, so
- * genuine multi-worker contention is covered by tests/live.test.ts instead.
+ * A migrated, throwaway Postgres. Defaults to PGlite in-process (hermetic, no
+ * daemon); with TEST_PG_URL set, the same suite runs against a real Postgres 16
+ * container matching production. PGlite is single-connection, so multi-worker
+ * contention lives in concurrency.test.ts, which requires the container.
  */
 export async function freshDb(): Promise<Sql & { close(): Promise<void> }> {
+  if (PG_URL) {
+    const { pool, drop } = await freshSchema();
+    const p = pool();
+    const sql: Sql = {
+      query: (text, params) => p.query(text, params as any[]) as any,
+      exec: async (text) => {
+        await p.query(text);
+      },
+    };
+    await migrate(sql);
+    return { ...sql, close: drop };
+  }
+
   const pg = await PGlite.create();
   const sql: Sql = {
     query: (text, params) => pg.query(text, params as any[]) as any,
