@@ -139,3 +139,44 @@ match. The `words` column stores the chunks overlapping each segment.
 npm run worker    # poll the queue and transcribe
 npm run test:live # end-to-end against the real Sarvam API (costs money)
 ```
+
+## Quality gate harness
+
+`scripts/e2e.mts` runs one recording through the entire pipeline — upload API,
+storage, concat, Sarvam, Postgres — against throwaway containers, and dumps the
+transcript as JSON. This is the tool for the SPEC.md §11.2 gate: point it at a
+folder of the client's real 60-second segments and read the output before
+building anything downstream.
+
+### Validation run, 2026-08-26
+
+A 19.4-minute synthetic Telugu meeting (165 turns, 4 speakers, Telugu-English
+code-mixing, seeded with checkable numbers) split into twenty 60-second
+segments and pushed through the whole pipeline.
+
+| | result |
+|---|---|
+| Pipeline | 20 segments uploaded, concatenated, transcribed in **32s**, no retries |
+| Transcript length | 98% of spoken characters |
+| Per-turn accuracy | median **90%**, p25 75%, 28/165 turns below 70% |
+| Numbers and amounts | **25/25** preserved (often normalised: "నలభై వేల" → "40,000") |
+| Diarization | **4 speakers found for 4 actual**; main speaker 81 turns detected vs 81 spoken |
+| Code-mixing | 24 of the 25 most common English words stayed in Latin script |
+| Timeline coverage | 99.9% |
+
+Where it struggles — all of it worth re-checking on real speech:
+
+- **Acronyms and scheme names are unreliable.** MGNREGA → "ఎవరైనా", MeeSeva →
+  "దిగే బలు", ICDS → "యహోయ్", Aadhaar → "Wadahar", RTC dropped. For a
+  constituency use case these are exactly the terms that matter.
+- **Whole clauses can vanish.** "Applications ఎక్కడ పెట్టారు? MeeSeva లోనా లేక
+  Panchayat office లోనా?" came back as "Applications ఎప్పుడు పెట్టారు?" — the
+  second question simply gone, with nothing marking the loss.
+- **Telugu proper nouns may be romanised.** లక్ష్మమ్మ → "Lakshmamma", which
+  matters for name search and the §7 participant autocomplete.
+
+**This run does not establish real-world accuracy.** The audio is Sarvam's own
+text-to-speech: clean, no background noise, no overlapping speech, one accent,
+and — most importantly — a Telugu voice pronouncing English acronyms, which is
+probably why they transcribed so badly. Real recordings may do better on
+acronyms and worse on everything else. The gate still needs the client's audio.
