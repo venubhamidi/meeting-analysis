@@ -1,4 +1,6 @@
-import { claim, complete, fail, reclaimExpired, type Job } from './jobs/queue.js';
+import { claim, complete, fail, reclaimExpired, type Job, type JobType } from './jobs/queue.js';
+import { analyzeMeeting } from './pipeline/analyze.js';
+import { createAnalyst, type Analyst } from './pipeline/llm.js';
 import { SarvamClient } from './pipeline/sarvam.js';
 import { transcribeMeeting, type Transcriber } from './pipeline/transcribe.js';
 import type { Sql } from './sql.js';
@@ -6,11 +8,20 @@ import type { Storage } from './storage.js';
 
 const IDLE_MS = 5_000;
 
-export type Handlers = { transcribe(meetingId: string): Promise<unknown> };
+export type Handlers = {
+  transcribe(meetingId: string): Promise<unknown>;
+  analyze?(meetingId: string): Promise<unknown>;
+};
 
-export function handlers(sql: Sql, store: Storage, sarvam: Transcriber): Handlers {
+export function handlers(
+  sql: Sql,
+  store: Storage,
+  sarvam: Transcriber,
+  analyst?: Analyst
+): Handlers {
   return {
     transcribe: (meetingId) => transcribeMeeting(sql, store, sarvam, meetingId),
+    ...(analyst ? { analyze: (meetingId) => analyzeMeeting(sql, analyst, meetingId) } : {}),
   };
 }
 
@@ -20,7 +31,10 @@ export function handlers(sql: Sql, store: Storage, sarvam: Transcriber): Handler
  */
 export async function tick(sql: Sql, h: Handlers): Promise<number> {
   await reclaimExpired(sql);
-  const jobs = await claim(sql, ['transcribe'], 1);
+  // Only claim stages this worker can actually run; without an analysis model
+  // configured, analyze jobs wait rather than failing their attempts away.
+  const types: JobType[] = h.analyze ? ['transcribe', 'analyze'] : ['transcribe'];
+  const jobs = await claim(sql, types, 1);
   for (const job of jobs) await runJob(sql, h, job);
   return jobs.length;
 }
@@ -28,7 +42,9 @@ export async function tick(sql: Sql, h: Handlers): Promise<number> {
 async function runJob(sql: Sql, h: Handlers, job: Job): Promise<void> {
   try {
     if (!job.meeting_id) throw new Error(`job ${job.id} has no meeting_id`);
-    await h[job.type as 'transcribe'](job.meeting_id);
+    const handler = h[job.type as keyof Handlers];
+    if (!handler) throw new Error(`no handler for job type ${job.type}`);
+    await handler(job.meeting_id);
     await complete(sql, job.id);
   } catch (e) {
     const message = e instanceof Error ? e.message : String(e);
@@ -73,10 +89,12 @@ if (process.argv[1]?.endsWith('worker.ts')) {
   const sql = db();
   const store = storage();
   const sarvam = new SarvamClient({ apiKey: key });
+  const analyst = process.env.ANTHROPIC_API_KEY ? createAnalyst() : undefined;
+  if (!analyst) console.warn('ANTHROPIC_API_KEY is not set — analyze jobs will queue');
   const controller = new AbortController();
   process.on('SIGTERM', () => controller.abort());
   process.on('SIGINT', () => controller.abort());
 
   console.log('worker polling for jobs');
-  await runForever(sql, handlers(sql, store, sarvam), controller.signal);
+  await runForever(sql, handlers(sql, store, sarvam, analyst), controller.signal);
 }

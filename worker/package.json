@@ -10,13 +10,16 @@
     "typecheck": "tsc --noEmit",
     "test:pg": "TEST_PG_URL=postgresql://postgres:test@localhost:55432/meetings_test TEST_S3_ENDPOINT=http://localhost:59000 tsx --test tests/*.test.ts",
     "start": "tsx src/server.ts",
-    "worker": "tsx src/worker.ts"
+    "worker": "tsx src/worker.ts",
+    "main": "tsx src/main.ts"
   },
   "dependencies": {
+    "@anthropic-ai/sdk": "^0.121.0",
     "@aws-sdk/client-s3": "^3.1118.0",
     "@aws-sdk/s3-request-presigner": "^3.1118.0",
     "express": "^5.2.1",
-    "pg": "^8.23.0"
+    "pg": "^8.23.0",
+    "zod": "^4.4.3"
   },
   "devDependencies": {
     "@electric-sql/pglite": "^0.5.7",

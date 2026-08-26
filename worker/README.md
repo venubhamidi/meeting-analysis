@@ -180,3 +180,47 @@ text-to-speech: clean, no background noise, no overlapping speech, one accent,
 and — most importantly — a Telugu voice pronouncing English acronyms, which is
 probably why they transcribed so badly. Real recordings may do better on
 acronyms and worse on everything else. The gate still needs the client's audio.
+
+## Analysis (phase 3)
+
+Per-meeting analysis via Claude, behind an `Analyst` interface so the provider
+is configuration rather than a rewrite.
+
+`ANALYSIS_MODEL` defaults to **claude-sonnet-5** (SPEC.md §2 names
+claude-sonnet-4-6, now superseded). At 220 meetings/month: Sonnet 5 ~₹1,288,
+Haiku 4.5 ~₹429, Opus 5 ~₹2,147 — against a ~₹4,950 transcription bill.
+
+### The verbatim-quote rule
+
+Invariant #7 is enforced in code, not trusted to the prompt. A model will
+happily produce a quote that reads correctly but was never said, and nothing
+downstream could tell the difference.
+
+1. Every quote must be a literal substring of a transcript segment.
+2. A real quote citing the wrong segment is kept with its citation corrected —
+   the text is genuine, only the attribution was wrong.
+3. Quotes that fail go back to the model with a correction message naming them
+   (up to `MAX_CORRECTIONS`).
+4. Anything still unverifiable is dropped, and the rest of the analysis is
+   kept. A summary missing a few quotes is useful; an invented quote is not.
+
+The model never supplies timings. It cites a segment by `seq`, and the worker
+looks up `start_ms`/`end_ms` from that segment, so a quote's audio position
+comes from the transcript rather than the model's memory of it.
+
+### Validation run, 2026-08-26
+
+The 145-segment natural Telugu transcript, both tiers:
+
+| | quotes | corrections | non-verbatim after storage | time |
+|---|---|---|---|---|
+| claude-opus-5 | 9 | 0 | 0 | 217s |
+| claude-sonnet-5 | 9 | 0 | 0 | 185s |
+
+Both produced verbatim Telugu quotes first time — the validator never had to
+intervene. Opus extracted noticeably more structured facts (29 commitments vs
+18, 36 amounts vs 25); whether that is Opus over-extracting or Sonnet missing
+real facts is unresolved and matters for invariant #9, which requires roll-up
+facts to equal the union of child facts. Re-check on real transcripts.
+
+`scripts/analyze-live.mts` reruns this against any transcript.

@@ -1,6 +1,7 @@
 import { mkdtemp, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
+import { enqueue } from '../jobs/queue.js';
 import type { Sql } from '../sql.js';
 import type { Storage } from '../storage.js';
 import { concatSegments } from './concat.js';
@@ -74,6 +75,9 @@ export async function transcribeMeeting(
     }
 
     await sql.query(`UPDATE meetings SET status = 'transcribed' WHERE id = $1`, [meetingId]);
+    // §6.1 stage 2. Its own job, so a failing analysis retries analysis alone
+    // and never re-pays for transcription (invariant #5).
+    await enqueue(sql, meetingId, 'analyze');
     return {
       segments: rows.length,
       speakers: new Set(rows.map((r) => r.label)).size,

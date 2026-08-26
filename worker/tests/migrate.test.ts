@@ -15,7 +15,7 @@ test('migrations apply once and are safe to re-run', async () => {
   const first = await migrate(sql);
   const second = await migrate(sql);
 
-  assert.deepEqual(first, ['001_phase2.sql', '002_segments.sql']);
+  assert.deepEqual(first, ['001_phase2.sql', '002_segments.sql', '003_analyses.sql']);
   assert.deepEqual(second, []);
   await pg.close();
 });

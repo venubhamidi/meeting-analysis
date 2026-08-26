@@ -156,10 +156,15 @@ test('the worker drains a queued job end to end', skipUnlessS3, async () => {
   await enqueue(db, MEETING, 'transcribe');
 
   assert.equal(await tick(db, handlers(db, store, sarvam)), 1);
+  // No analyst is configured here, so the analyze job transcribe just enqueued
+  // is deliberately not claimed — it waits rather than failing its attempts away.
   assert.equal(await tick(db, handlers(db, store, sarvam)), 0, 'job was offered twice');
 
-  const { rows } = await db.query<Job>(`SELECT * FROM jobs`);
-  assert.equal(rows[0].status, 'done');
+  const { rows } = await db.query<Job>(`SELECT * FROM jobs ORDER BY type`);
+  const byType = Object.fromEntries(rows.map((r) => [r.type, r]));
+  assert.equal(byType.transcribe.status, 'done');
+  assert.equal(byType.analyze.status, 'pending', 'analysis was not queued after transcription');
+  assert.equal(byType.analyze.attempts, 0);
   assert.equal(sarvam.calls.length, 1);
   await rm(dir, { recursive: true, force: true });
   await db.close();
