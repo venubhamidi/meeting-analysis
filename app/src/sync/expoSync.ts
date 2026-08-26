@@ -4,6 +4,7 @@ import { File } from 'expo-file-system';
 import type { SqlDb } from '../db/adapter';
 import { createApi } from './api';
 import { syncOnce, type Connectivity, type SyncOutcome } from './engine';
+import { syncDownOnce } from './syncDown';
 
 /**
  * Wires the sync engine to the device: real files, real connectivity, the
@@ -28,15 +29,20 @@ export function createSync(db: SqlDb, config: SyncConfig) {
     if (running) return null;
     running = true;
     try {
-      return await syncOnce(
+      const net = await currentConnectivity();
+      const up = await syncOnce(
         {
           db,
           api,
           readSegment: async (path) => new Uint8Array(await new File(path).bytes()),
           now: () => new Date(),
         },
-        await currentConnectivity()
+        net
       );
+      // Pulling results down is cheap and not worth holding back for WiFi —
+      // transcripts are text, unlike the audio going the other way.
+      if (net.online) await syncDownOnce(db, api);
+      return up;
     } finally {
       running = false;
     }

@@ -119,7 +119,16 @@ export function createApp(sql: Sql, store: Storage, env = process.env): Express 
         res.status(404).json({ error: 'not found' });
         return;
       }
-      res.json(rows[0]);
+
+      // §9: this endpoint carries results down to the app. Transcript segments
+      // are included once transcription has run; `words` is omitted because the
+      // app does not use chunk timestamps for display and they are bulky.
+      const transcript = await sql.query(
+        `SELECT seq, diarization_label, start_ms, end_ms, text_te, low_confidence
+           FROM transcript_segments WHERE meeting_id = $1 ORDER BY seq`,
+        [id]
+      );
+      res.json({ ...rows[0], transcript: transcript.rows });
     })
   );
 

@@ -23,6 +23,8 @@ export interface Api {
     segmentsTotal: number,
     durationSeconds: number | null
   ): Promise<CompleteResult>;
+  /** Pulls status and results back down for offline browsing (§9). */
+  getRecording(id: string): Promise<RecordingDetail>;
 }
 
 /** Thrown for responses that will fail the same way if retried immediately. */
@@ -83,5 +85,30 @@ export function createApi(baseUrl: string, token: string): Api {
       if (res.status === 409 || res.ok) return (await res.json()) as CompleteResult;
       throw new ApiError(`upload-complete -> ${res.status}`, res.status);
     },
+
+    async getRecording(id) {
+      const res = await fetch(`${baseUrl}/recordings/${id}`, {
+        headers: { authorization: `Bearer ${token}` },
+      });
+      if (!res.ok) throw new ApiError(`GET recording -> ${res.status}`, res.status);
+      return (await res.json()) as RecordingDetail;
+    },
   };
 }
+
+/** One transcript segment as the server stores it (SPEC.md §5). */
+export type TranscriptSegment = {
+  seq: number;
+  diarization_label: string | null;
+  start_ms: number;
+  end_ms: number;
+  text_te: string;
+  low_confidence: boolean;
+};
+
+export type RecordingDetail = {
+  id: string;
+  status: string;
+  duration_seconds: number | null;
+  transcript: TranscriptSegment[];
+};

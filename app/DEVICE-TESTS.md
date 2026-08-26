@@ -63,3 +63,15 @@ nothing is sent. It uploads once WiFi is available.
 
 Force-quit during an upload, relaunch. Expected: the pass resumes from the first
 unconfirmed segment; already-uploaded segments are not re-sent.
+
+## 9. Transcript sync-down
+
+With the worker reachable, upload a recording and wait for transcription.
+
+Expected: the meeting detail screen's Transcript tab fills in on the next
+foreground, showing speaker labels and timestamps. Put the phone in airplane
+mode and reopen the meeting — the transcript is still there, read from local
+SQLite with no network call.
+
+Tapping a transcript line plays the ~60-second segment containing that moment.
+Seeking to the exact moment within a segment is phase 3's quote playback.

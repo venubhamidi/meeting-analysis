@@ -206,6 +206,39 @@ test('playback falls back to the first segment before concatenation', skipUnless
   await s.close();
 });
 
+test('the detail endpoint carries the transcript down to the app', skipUnlessS3, async () => {
+  const s = await serve();
+  await s.db.query(
+    `INSERT INTO meetings (id, user_id, created_at, status)
+     VALUES ($1, 'u1', now(), 'transcribed')`,
+    [MEETING]
+  );
+  await s.db.query(
+    `INSERT INTO transcript_segments (meeting_id, seq, diarization_label, start_ms, end_ms, text_te)
+     VALUES ($1, 0, 'Speaker 1', 0, 4000, 'మొదటి వాక్యం'),
+            ($1, 1, 'Speaker 2', 4200, 9000, 'రెండవ వాక్యం')`,
+    [MEETING]
+  );
+
+  const detail = await s.json(`/recordings/${MEETING}`);
+  assert.equal(detail.transcript.length, 2);
+  assert.deepEqual(detail.transcript.map((t: any) => t.seq), [0, 1]);
+  assert.equal(detail.transcript[0].diarization_label, 'Speaker 1');
+  assert.equal(detail.transcript[1].text_te, 'రెండవ వాక్యం');
+  await s.close();
+});
+
+test('a meeting with no transcript yet returns an empty array, not null', skipUnlessS3, async () => {
+  const s = await serve();
+  await s.db.query(
+    `INSERT INTO meetings (id, user_id, created_at) VALUES ($1, 'u1', now())`,
+    [MEETING]
+  );
+  const detail = await s.json(`/recordings/${MEETING}`);
+  assert.deepEqual(detail.transcript, []);
+  await s.close();
+});
+
 test('delta sync returns only rows newer than the cursor', skipUnlessS3, async () => {
   const s = await serve();
   await s.db.query(

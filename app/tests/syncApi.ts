@@ -1,6 +1,8 @@
 import type {
   Api,
   CompleteResult,
+  RecordingDetail,
+  TranscriptSegment,
   UploadInitResult,
 } from '../src/sync/api';
 
@@ -11,6 +13,7 @@ import type {
  */
 export function fakeServer(opts: { failOn?: (call: string, n: number) => Error | null } = {}) {
   const landed = new Map<string, Set<number>>();
+  const transcripts = new Map<string, { status: string; transcript: TranscriptSegment[] }>();
   const calls: string[] = [];
   const counts = new Map<string, number>();
 
@@ -46,6 +49,16 @@ export function fakeServer(opts: { failOn?: (call: string, n: number) => Error |
       check('confirmSegment');
       if (!setOf(id).has(seq)) throw new Error('object not found in storage');
     },
+    async getRecording(id): Promise<RecordingDetail> {
+      check('getRecording');
+      const t = transcripts.get(id);
+      return {
+        id,
+        status: t?.status ?? 'uploaded',
+        duration_seconds: null,
+        transcript: t?.transcript ?? [],
+      };
+    },
     async uploadComplete(id, total): Promise<CompleteResult> {
       check('uploadComplete');
       const have = setOf(id);
@@ -59,6 +72,10 @@ export function fakeServer(opts: { failOn?: (call: string, n: number) => Error |
     calls,
     count: (name: string) => calls.filter((c) => c === name).length,
     landedFor: (id: string) => Array.from(setOf(id)).sort((a, b) => a - b),
+    /** Stands in for the worker having transcribed the meeting. */
+    setTranscript(id: string, status: string, transcript: TranscriptSegment[]) {
+      transcripts.set(id, { status, transcript });
+    },
     /** Simulates the server losing an object after the client confirmed it. */
     dropServerSide(id: string, seq: number) {
       setOf(id).delete(seq);
