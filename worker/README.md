@@ -82,3 +82,60 @@ trust its exit code:
 
 `-xerror` was tried and rejected: it also fails on the "Non-monotonic DTS"
 warning that is normal at AAC segment boundaries.
+
+## Transcription
+
+Sarvam **batch** Speech-to-Text, not the synchronous endpoint. This is forced,
+not preferred: `/speech-to-text` does no diarization at all and targets clips
+under 30 seconds, while meetings run ~30 minutes and SPEC.md §7 depends on
+speaker labels.
+
+Flow (verified against the live API on 2026-08-26):
+
+```
+POST /speech-to-text/job/init      -> job_id + Azure blob SAS URLs
+PUT  <input_storage_path>/audio.m4a  (x-ms-blob-type: BlockBlob)
+POST /speech-to-text/job           -> job_parameters
+GET  /speech-to-text/job/{id}/status  until Completed
+GET  <output_storage_path>/<file_id>.json
+```
+
+Provider quirks the client handles, each found by testing rather than reading:
+
+- The output file is named by **file_id** (`0.json`), not by the name the audio
+  was uploaded under.
+- Output JSON is served with a **UTF-8 BOM**, which `JSON.parse` rejects.
+- `speaker_id` is neither zero-based nor contiguous — a two-person conversation
+  came back as ids 1 and 2 — so speakers are renumbered by first appearance.
+  Using the ids directly labels a two-speaker meeting "Speaker 2"/"Speaker 3".
+- `saaras:v4` exists on the sync endpoint but **not** on batch, which accepts
+  only `saarika:v2.5` and `saaras:v3`.
+
+### Model and mode
+
+`saaras:v3` with `mode=codemix`. Compared on identical two-speaker code-mixed
+Telugu audio:
+
+| mode | output |
+|---|---|
+| `codemix` | `మా village-లో water problem చాలా serious-గా ఉంది` |
+| `transcribe` | `మా విలేజ్లో వాటర్ ప్రాబ్లం చాలా సీరియస్గా ఉంది` |
+| `translit` | `maa village lo water problem chala serious ga undi` |
+
+`codemix` keeps English in Latin script as spoken, which is what §5's "Telugu
+(or code-mixed) verbatim" describes, reads far better, and gives the analysis
+stage a cleaner input. Diarization was equally accurate across all modes.
+
+### Timestamps are chunk-level, not word-level
+
+`timestamps.words` is misleadingly named: it returns sentence- or phrase-level
+spans. A 5-second utterance came back as **one** element. SPEC.md §1, §4.4,
+§5 and §6.1 assume word-level timestamps; the provider does not offer them on
+any model or mode. Quote playback therefore resolves to the sentence containing
+the quote — usually within a second — and invariant #6 should be reworded to
+match. The `words` column stores the chunks overlapping each segment.
+
+```
+npm run worker    # poll the queue and transcribe
+npm run test:live # end-to-end against the real Sarvam API (costs money)
+```

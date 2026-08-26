@@ -1,0 +1,47 @@
+{
+ "request_id": "20260826_4312bb09-8cfc-474a-bce0-5c5989a7b7e1",
+ "transcript": "నమస్కారం Sir, మా village-లో water problem చాలా serious-గా ఉంది. water pump 2 నెలలుగా repair కాలేదు. అర్థమైంది నేను tomorrow engineer-ని పంపిస్తాను OGET approval కూడా next week వస్తుంది. Thank you sir కానీ ఇది 3rd time మీరు చెప్పడం police ఈసారి action తీసుకోండి.",
+ "timestamps": {
+  "words": [
+   "నమస్కారం Sir, మా village-లో water problem చాలా serious-గా ఉంది. water pump 2 నెలలుగా repair కాలేదు.",
+   "అర్థమైంది నేను tomorrow engineer-ని పంపిస్తాను OGET approval కూడా next week వస్తుంది.",
+   "Thank you sir కానీ ఇది 3rd time మీరు చెప్పడం police ఈసారి action తీసుకోండి."
+  ],
+  "start_time_seconds": [
+   0.01,
+   6.61,
+   12.87
+  ],
+  "end_time_seconds": [
+   6.43,
+   12.73,
+   17.81
+  ]
+ },
+ "diarized_transcript": {
+  "entries": [
+   {
+    "transcript": "నమస్కారం Sir, మా village-లో water problem చాలా serious-గా ఉంది. water pump 2 నెలలుగా repair కాలేదు.",
+    "start_time_seconds": 0.01,
+    "end_time_seconds": 6.43,
+    "speaker_id": "1"
+   },
+   {
+    "transcript": "అర్థమైంది నేను tomorrow engineer-ని పంపిస్తాను OGET approval కూడా next week వస్తుంది.",
+    "start_time_seconds": 6.61,
+    "end_time_seconds": 12.73,
+    "speaker_id": "0"
+   },
+   {
+    "transcript": "Thank you sir కానీ ఇది 3rd time మీరు చెప్పడం police ఈసారి action తీసుకోండి.",
+    "start_time_seconds": 12.87,
+    "end_time_seconds": 17.81,
+    "speaker_id": "1"
+   }
+  ]
+ },
+ "language_code": "te-IN",
+ "language_probability": null,
+ "audio_hash": "e0d72371421cc1b4923596b7e11939b1",
+ "audio_mime": "audio/wav"
+}
