@@ -60,3 +60,25 @@ so speaker labels stay consistent across the whole meeting.
 
 A failed upload therefore retries one ~480 KB segment rather than a 5 MiB part,
 which is stricter than invariant #2 requires.
+
+## Audio concatenation
+
+The transcribe stage joins a meeting's segments into one m4a before sending it
+to Sarvam. This is not tidiness: transcribing segments separately restarts
+diarization every 60 seconds, so "Speaker 1" in minute 3 would be unrelated to
+"Speaker 1" in minute 4, breaking the meeting-scoped speaker labels in §7.
+
+Requires **ffmpeg and ffprobe on PATH** (`FFMPEG_PATH` / `FFPROBE_PATH` to
+override). The Railway image needs them installed.
+
+ffmpeg's concat demuxer is unusually quiet about failure, so the stage does not
+trust its exit code:
+
+1. Every segment is probed before joining. An unreadable segment is skipped by
+   the demuxer, which still exits 0 and produces a short file.
+2. The joined file's duration must match the sum of its inputs, within 250ms.
+   Segments at a mismatched sample rate are dropped *silently* — exit 0, no
+   error output whatsoever — and only this check catches it.
+
+`-xerror` was tried and rejected: it also fails on the "Non-monotonic DTS"
+warning that is normal at AAC segment boundaries.

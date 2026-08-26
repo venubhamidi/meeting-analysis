@@ -6,6 +6,9 @@ import {
   S3Client,
 } from '@aws-sdk/client-s3';
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
+import { createReadStream, createWriteStream, statSync } from 'node:fs';
+import { pipeline } from 'node:stream/promises';
+import type { Readable } from 'node:stream';
 
 /** Presigned upload URLs are short-lived; the app re-requests on resume. */
 export const UPLOAD_URL_TTL_S = 15 * 60;
@@ -17,6 +20,9 @@ export type Storage = {
   presignPut(key: string, contentType: string): Promise<string>;
   presignGet(key: string): Promise<string>;
   head(key: string): Promise<{ size: number } | null>;
+  /** Streams an object to a local path. Used by the pipeline, never by the app. */
+  download(key: string, destPath: string): Promise<void>;
+  upload(key: string, srcPath: string, contentType: string): Promise<void>;
   delete(key: string): Promise<void>;
 };
 
@@ -64,6 +70,22 @@ export function storage(env = process.env): Storage {
         if (e?.$metadata?.httpStatusCode === 404 || e?.name === 'NotFound') return null;
         throw e;
       }
+    },
+    async download(key, destPath) {
+      const r = await client.send(new GetObjectCommand({ Bucket: bucket, Key: key }));
+      if (!r.Body) throw new Error(`empty body for ${key}`);
+      await pipeline(r.Body as Readable, createWriteStream(destPath));
+    },
+    async upload(key, srcPath, contentType) {
+      await client.send(
+        new PutObjectCommand({
+          Bucket: bucket,
+          Key: key,
+          Body: createReadStream(srcPath),
+          ContentLength: statSync(srcPath).size,
+          ContentType: contentType,
+        })
+      );
     },
     async delete(key) {
       await client.send(new DeleteObjectCommand({ Bucket: bucket, Key: key }));
