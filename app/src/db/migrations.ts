@@ -59,4 +59,15 @@ export const MIGRATIONS: string[] = [
     recording_id, content, summary_te, summary_en, names
   );
   `,
+
+  // 2: per-segment upload tracking.
+  //
+  // SPEC.md §4.3 assumed one resumable multipart upload per recording, but R2
+  // requires every part except the last to be >= 5 MiB and equal-sized, and
+  // segments are ~480 KB. Each segment is its own presigned PUT instead, so
+  // resume is tracked per segment rather than per part.
+  `
+  ALTER TABLE recording_segments ADD COLUMN uploaded_at TEXT;
+  ALTER TABLE recordings ADD COLUMN last_synced_at TEXT;
+  `,
 ];

@@ -43,3 +43,23 @@ background mode, set in `app.json`).
 
 Record 30 minutes. Expected: ~30 segments, roughly 14 MB total, no memory growth
 that ends the process.
+
+## 6. Sync — connectivity drop mid-upload
+
+Set `EXPO_PUBLIC_API_URL` and `EXPO_PUBLIC_DEVICE_TOKEN`, record ~5 minutes, then
+put the phone in airplane mode while the meetings list shows it uploading.
+
+Expected: the recording returns to "waiting to upload" with an error recorded,
+and no crash. On restoring connectivity it resumes and reaches "uploaded"
+without re-sending the segments that already landed — check the worker logs for
+the segment count.
+
+## 7. Sync — WiFi-only default
+
+Record on cellular only. Expected: the recording stays "waiting to upload" and
+nothing is sent. It uploads once WiFi is available.
+
+## 8. Sync — app restart mid-upload
+
+Force-quit during an upload, relaunch. Expected: the pass resumes from the first
+unconfirmed segment; already-uploaded segments are not re-sent.

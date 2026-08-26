@@ -10,7 +10,10 @@ export type RecordingRow = {
   state: RecordingState;
   attempts: number;
   first_attempt_at: string | null;
+  next_retry_at: string | null;
   last_error: string | null;
+  /** SQLite has no boolean; 1 = upload only on WiFi (the default). */
+  wifi_only: number;
   notes_text: string | null;
 };
 
@@ -112,4 +115,72 @@ export async function pendingCount(db: SqlDb): Promise<number> {
     `SELECT COUNT(*) AS n FROM recordings WHERE state NOT IN ('synced', 'recording')`
   );
   return row?.n ?? 0;
+}
+
+/** Segments not yet confirmed on the server, in order. */
+export async function pendingSegments(
+  db: SqlDb,
+  recordingId: string
+): Promise<SegmentRow[]> {
+  return db.all<SegmentRow>(
+    `SELECT * FROM recording_segments
+      WHERE recording_id = ? AND uploaded_at IS NULL
+      ORDER BY seq`,
+    [recordingId]
+  );
+}
+
+export async function markSegmentUploaded(
+  db: SqlDb,
+  recordingId: string,
+  seq: number,
+  at: string
+): Promise<void> {
+  await db.run(
+    `UPDATE recording_segments SET uploaded_at = ? WHERE recording_id = ? AND seq = ?`,
+    [at, recordingId, seq]
+  );
+}
+
+/** Recordings the sync engine should work on, oldest first. */
+export async function dueForSync(db: SqlDb, now: string): Promise<RecordingRow[]> {
+  return db.all<RecordingRow>(
+    `SELECT * FROM recordings
+      WHERE state IN ('recorded', 'queued', 'uploading')
+        AND (next_retry_at IS NULL OR next_retry_at <= ?)
+      ORDER BY created_at`,
+    [now]
+  );
+}
+
+/** Records a failed attempt and schedules the next one. */
+export async function recordFailure(
+  db: SqlDb,
+  id: string,
+  error: string,
+  nextRetry: string,
+  now: string
+): Promise<void> {
+  await db.run(
+    `UPDATE recordings
+        SET attempts = attempts + 1,
+            last_error = ?,
+            next_retry_at = ?,
+            first_attempt_at = COALESCE(first_attempt_at, ?)
+      WHERE id = ?`,
+    [error.slice(0, 500), nextRetry, now, id]
+  );
+}
+
+export async function clearFailure(db: SqlDb, id: string, now: string): Promise<void> {
+  await db.run(
+    `UPDATE recordings
+        SET attempts = 0, last_error = NULL, next_retry_at = NULL, last_synced_at = ?
+      WHERE id = ?`,
+    [now, id]
+  );
+}
+
+export async function markStuck(db: SqlDb, id: string): Promise<void> {
+  await db.run(`UPDATE recordings SET state = 'stuck' WHERE id = ?`, [id]);
 }
