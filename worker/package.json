@@ -8,13 +8,18 @@
     "test": "tsx --test tests/*.test.ts",
     "test:live": "LIVE_DB=1 tsx --test tests/live.test.ts",
     "typecheck": "tsc --noEmit",
-    "test:pg": "TEST_PG_URL=postgresql://postgres:test@localhost:55432/meetings_test tsx --test tests/*.test.ts"
+    "test:pg": "TEST_PG_URL=postgresql://postgres:test@localhost:55432/meetings_test TEST_S3_ENDPOINT=http://localhost:59000 tsx --test tests/*.test.ts",
+    "start": "tsx src/server.ts"
   },
   "dependencies": {
+    "@aws-sdk/client-s3": "^3.1118.0",
+    "@aws-sdk/s3-request-presigner": "^3.1118.0",
+    "express": "^5.2.1",
     "pg": "^8.23.0"
   },
   "devDependencies": {
     "@electric-sql/pglite": "^0.5.7",
+    "@types/express": "^5.0.6",
     "@types/node": "^26.2.0",
     "@types/pg": "^8.23.1",
     "tsx": "^4.23.12",
