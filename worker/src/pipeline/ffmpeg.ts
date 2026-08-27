@@ -21,6 +21,32 @@ export async function ffmpeg(args: string[]): Promise<void> {
   }
 }
 
+/**
+ * The fraction of the audio that is not silence, per ffmpeg's silencedetect.
+ *
+ * Used only to decline obviously empty recordings. It is deliberately crude:
+ * a field recording with constant ambient noise registers as ~100% speech,
+ * which is the safe answer — the gate must fail open and transcribe when
+ * unsure, because skipping a real meeting costs far more than transcribing an
+ * empty one.
+ */
+export async function speechRatio(path: string, noiseDb = -40): Promise<number> {
+  const total = await durationMs(path);
+  if (total <= 0) return 0;
+  const { stderr } = await run(
+    FFMPEG,
+    ['-nostdin', '-hide_banner', '-v', 'info', '-i', path,
+     '-af', `silencedetect=noise=${noiseDb}dB:d=0.8`, '-f', 'null', '-'],
+    { timeout: TIMEOUT_MS, maxBuffer: 8 * 1024 * 1024 }
+  ).catch((e: any) => ({ stderr: String(e?.stderr ?? '') }));
+
+  let silentMs = 0;
+  for (const m of String(stderr).matchAll(/silence_duration:\s*([\d.]+)/g)) {
+    silentMs += Number(m[1]) * 1000;
+  }
+  return Math.max(0, Math.min(1, (total - silentMs) / total));
+}
+
 /** Duration in milliseconds, read from the container metadata. */
 export async function durationMs(path: string): Promise<number> {
   const { stdout } = await run(

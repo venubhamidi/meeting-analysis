@@ -23,6 +23,15 @@ const API = 'https://api.sarvam.ai';
 export const DEFAULT_MODEL = 'saaras:v3';
 export const DEFAULT_MODE = 'codemix';
 
+/**
+ * Let Sarvam detect the language rather than pinning one, so the same worker
+ * serves Telugu, Tamil and Hindi meetings without per-customer configuration.
+ * The detected code comes back on the result and is logged in transcribe.ts:
+ * heavily code-mixed audio can be classified as the wrong language, and that
+ * should be visible rather than silent.
+ */
+export const DEFAULT_LANGUAGE = 'unknown';
+
 export type SarvamEntry = {
   transcript: string;
   start_time_seconds: number;
@@ -99,7 +108,7 @@ export class SarvamClient {
       job_parameters: {
         model: this.opts.model ?? DEFAULT_MODEL,
         mode: this.opts.mode ?? DEFAULT_MODE,
-        language_code: this.opts.languageCode ?? 'te-IN',
+        language_code: this.opts.languageCode ?? DEFAULT_LANGUAGE,
         with_diarization: true,
         with_timestamps: true,
         // Sarvam infers the count when this is omitted. A meeting's speaker

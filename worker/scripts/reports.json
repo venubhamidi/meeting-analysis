@@ -1,0 +1,11 @@
+[
+  { "slug": "telugu", "name": "Telugu", "native": "తెలుగు", "tag": "te", "live": true,
+    "note": "Village sabha, 15:18. Full recording and spoken samples playable alongside the transcript." },
+  { "slug": "telangana", "name": "Telangana Telugu", "native": "తెలంగాణ తెలుగు", "tag": "te",
+    "note": "Telangana dialect with the Urdu-origin vocabulary it has naturalised.",
+    "result": "/tmp/telangana-result.json", "analysis": "/tmp/telangana-analysis.json" },
+  { "slug": "hindi", "name": "Hindi", "native": "हिन्दी", "tag": "hi",
+    "result": "/tmp/hindi-result.json", "analysis": "/tmp/hindi-analysis.json" },
+  { "slug": "tamil", "name": "Tamil", "native": "தமிழ்", "tag": "ta",
+    "result": "/tmp/tamil-result.json", "analysis": "/tmp/tamil-analysis.json" }
+]

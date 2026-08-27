@@ -5,6 +5,8 @@ import { enqueue } from '../jobs/queue.js';
 import type { Sql } from '../sql.js';
 import type { Storage } from '../storage.js';
 import { concatSegments } from './concat.js';
+import { gate } from './gate.js';
+import { speechRatio } from './ffmpeg.js';
 import type { SarvamEntry, SarvamResult } from './sarvam.js';
 
 /**
@@ -18,7 +20,10 @@ export type Transcriber = { transcribe(audioPath: string): Promise<SarvamResult>
 export type TranscribeResult = {
   segments: number;
   speakers: number;
+  /** True when an existing transcript meant there was nothing to do. */
   skipped: boolean;
+  /** Set when the junk gate declined to transcribe; the audio is still kept. */
+  gated?: string;
 };
 
 /**
@@ -49,7 +54,28 @@ export async function transcribeMeeting(
   try {
     const audio = join(dir, 'audio.m4a');
     await store.download(concat.key, audio);
+
+    // Decide whether this is worth transcribing, before paying for it.
+    const forced = await isForced(sql, meetingId);
+    const ratio = await speechRatio(audio).catch(() => null);
+    const verdict = gate({ durationMs: concat.durationMs, speechRatio: ratio, forced });
+    if (verdict.skip) {
+      await sql.query(
+        `UPDATE meetings SET status = 'skipped', skip_reason = $2 WHERE id = $1`,
+        [meetingId, verdict.reason]
+      );
+      return { segments: 0, speakers: 0, skipped: false, gated: verdict.reason };
+    }
+
     const result = await sarvam.transcribe(audio);
+    // The language is detected, not configured (sarvam.ts DEFAULT_LANGUAGE), so
+    // a code-mixed meeting classified as the wrong language has to be visible.
+    console.log(
+      `${meetingId}: sarvam detected ${result.language_code ?? 'no language'}` +
+        (result.language_probability != null
+          ? ` (p=${result.language_probability.toFixed(2)})`
+          : '')
+    );
     const rows = toSegments(result);
     if (rows.length === 0) {
       throw new Error(`sarvam returned no usable transcript for ${meetingId}`);
@@ -155,6 +181,15 @@ export function toSegments(result: SarvamResult): Row[] {
  * would label a two-speaker meeting "Speaker 2" and "Speaker 3". The mapping is
  * meeting-scoped, which is all §7 requires.
  */
+/** A human can overrule the junk gate without re-uploading the recording. */
+async function isForced(sql: Sql, meetingId: string): Promise<boolean> {
+  const { rows } = await sql.query<{ force_transcribe: boolean }>(
+    `SELECT force_transcribe FROM meetings WHERE id = $1`,
+    [meetingId]
+  );
+  return Boolean(rows[0]?.force_transcribe);
+}
+
 function speakerLabel(entry: SarvamEntry, seen: Map<string, string>): string {
   const id = String(entry.speaker_id);
   let label = seen.get(id);

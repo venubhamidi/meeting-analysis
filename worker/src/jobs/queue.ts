@@ -21,6 +21,8 @@ export type Job = {
   max_attempts: number;
   next_retry_at: string;
   last_error: string | null;
+  /** 0 waits for the overnight batch; 1 runs now. See migration 005. */
+  priority: number;
 };
 
 /** How long a claimed job may run before another worker may take it over. */
@@ -35,13 +37,33 @@ export async function enqueue(
   sql: Sql,
   meetingId: string,
   type: JobType,
-  payload: Record<string, unknown> | null = null
+  payload: Record<string, unknown> | null = null,
+  priority = 0
 ): Promise<void> {
+  // A duplicate enqueue is a no-op, but it may still raise the priority: the
+  // office asking for a meeting now must not be ignored because the job
+  // already existed at normal priority.
   await sql.query(
-    `INSERT INTO jobs (meeting_id, type, payload) VALUES ($1, $2, $3)
-     ON CONFLICT (meeting_id, type) DO NOTHING`,
-    [meetingId, type, payload]
+    `INSERT INTO jobs (meeting_id, type, payload, priority) VALUES ($1, $2, $3, $4)
+     ON CONFLICT (meeting_id, type) DO UPDATE
+        SET priority = GREATEST(jobs.priority, EXCLUDED.priority),
+            next_retry_at = CASE WHEN EXCLUDED.priority > jobs.priority
+                                 THEN now() ELSE jobs.next_retry_at END
+      WHERE jobs.status IN ('pending', 'failed')`,
+    [meetingId, type, payload, priority]
   );
+}
+
+/** Moves an existing job to the front of the queue and clears any backoff. */
+export async function prioritize(sql: Sql, meetingId: string, type: JobType): Promise<boolean> {
+  const { rows } = await sql.query<{ id: string }>(
+    `UPDATE jobs SET priority = 1, next_retry_at = now(),
+                     status = CASE WHEN status = 'failed' THEN 'pending' ELSE status END
+      WHERE meeting_id = $1 AND type = $2 AND status <> 'done'
+      RETURNING id`,
+    [meetingId, type]
+  );
+  return rows.length > 0;
 }
 
 /**
@@ -51,7 +73,18 @@ export async function enqueue(
  * While a job is `running`, `next_retry_at` holds its lease deadline; see
  * `reclaimExpired`.
  */
-export async function claim(sql: Sql, types: JobType[], limit = 1): Promise<Job[]> {
+/**
+ * Claims due jobs, highest priority first.
+ *
+ * `priorityOnly` is what the live worker uses between batch runs: normal-lane
+ * work is left in the queue for the overnight batch, which costs half as much.
+ */
+export async function claim(
+  sql: Sql,
+  types: JobType[],
+  limit = 1,
+  priorityOnly = false
+): Promise<Job[]> {
   const { rows } = await sql.query<Job>(
     `UPDATE jobs SET status = 'running',
                      next_retry_at = now() + make_interval(secs => $3)
@@ -60,12 +93,13 @@ export async function claim(sql: Sql, types: JobType[], limit = 1): Promise<Job[
          WHERE status = 'pending'
            AND next_retry_at <= now()
            AND type = ANY($1)
-         ORDER BY created_at
+           AND ($4::boolean IS FALSE OR priority > 0)
+         ORDER BY priority DESC, created_at
          LIMIT $2
          FOR UPDATE SKIP LOCKED
       )
       RETURNING *`,
-    [types, limit, LEASE_MS / 1000]
+    [types, limit, LEASE_MS / 1000, priorityOnly]
   );
   return rows;
 }

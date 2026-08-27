@@ -1,0 +1,31 @@
+{
+  "name": "hindi-ward-sabha",
+  "languageCode": "hi-IN",
+  "note": "Hindi with English code-mixing. Same ward-level grievance meeting as telangana-script.json, so the three language variants are comparable. Synthetic — see scripts/tts-fixture.mts.",
+  "turns": [
+    { "speaker": "sarpanch", "voice": "rahul", "text": "नमस्कार सबको। चलिए मीटिंग शुरू करते हैं। आज तीन issues हैं — पानी की सप्लाई, सफाई, और अस्पताल।" },
+    { "speaker": "resident-1", "voice": "priya", "text": "साहब, पहले पानी की बात कीजिए। हमारे मोहल्ले में दस दिन से पानी नहीं आया। बहुत परेशान हो गए हैं।" },
+    { "speaker": "sarpanch", "voice": "rahul", "text": "हाँ बहन, मालूम है। मोटर जल गई है। नई मोटर के लिए सरकार को कागज़ भेजा है।" },
+    { "speaker": "resident-2", "voice": "amit", "text": "कागज़ भेजे दो महीने हो गए भाई। इंतज़ार करते करते लोग थक गए। फैसला कब आएगा?" },
+    { "speaker": "ward-member", "voice": "neha", "text": "मैं BDO ऑफिस गई थी। उन्होंने बताया — budget approval इस महीने के आखिर में आएगा।" },
+    { "speaker": "resident-1", "voice": "priya", "text": "महीने के आखिर मतलब और बीस दिन। तब तक पानी कहाँ से? बच्चों के लिए पीने का पानी नहीं है साहब।" },
+    { "speaker": "sarpanch", "voice": "rahul", "text": "इंतज़ाम कर रहा हूँ। कल से टैंकर रोज़ दो बार आएगा। सुबह सात बजे, शाम पाँच बजे।" },
+    { "speaker": "resident-2", "voice": "amit", "text": "टैंकर आता है लेकिन हमारी गली के आखिर तक नहीं आता। ड्राइवर मेन रोड पर ही खड़ा करके चला जाता है।" },
+    { "speaker": "sarpanch", "voice": "rahul", "text": "ये सही बात नहीं है। मैं ड्राइवर को सीधे बोलूँगा। हर गली में रुकना पड़ेगा। वरना complaint करूँगा।" },
+    { "speaker": "ward-member", "voice": "neha", "text": "दूसरा issue — सफाई। ड्रेनेज पूरी तरह block हो गई है। मच्छर बहुत बढ़ गए हैं।" },
+    { "speaker": "resident-1", "voice": "priya", "text": "हाँ। हमारे घर के सामने गड्ढे में पानी जमा हो गया है। मलेरिया के केस आ रहे हैं।" },
+    { "speaker": "resident-2", "voice": "amit", "text": "सफाई कर्मचारी हफ्ते में एक बार आता है। वो भी खाली किए बिना चला जाता है।" },
+    { "speaker": "sarpanch", "voice": "rahul", "text": "अभी कितने कर्मचारी हैं?" },
+    { "speaker": "ward-member", "voice": "neha", "text": "सिर्फ तीन साहब। छह होने चाहिए। तीन पोस्ट खाली हैं। नौकरी के लिए applications आई हैं लेकिन file pending है।" },
+    { "speaker": "sarpanch", "voice": "rahul", "text": "ठीक है। मैं इसी हफ्ते ब्लॉक ऑफिस जाऊँगा। वो file clear करवाऊँगा।" },
+    { "speaker": "resident-1", "voice": "priya", "text": "तीसरी बात अस्पताल की साहब। sub centre में डॉक्टर नहीं है। ANM अकेली है।" },
+    { "speaker": "resident-2", "voice": "amit", "text": "डिलीवरी के सारे केस शहर भेज देते हैं। बीस किलोमीटर। रात को गाड़ी भी नहीं मिलती।" },
+    { "speaker": "ward-member", "voice": "neha", "text": "पिछले साल भी यही complaint दी थी। CMO ऑफिस से अभी तक जवाब नहीं आया।" },
+    { "speaker": "sarpanch", "voice": "rahul", "text": "अब ऐसे नहीं चलेगा। हम सब मिलकर कलेक्टर को अर्ज़ी देंगे। हस्ताक्षर इकट्ठे करेंगे।" },
+    { "speaker": "resident-1", "voice": "priya", "text": "ये अच्छा idea है। हमारे मोहल्ले में हस्ताक्षर मैं ले लूँगी।" },
+    { "speaker": "resident-2", "voice": "amit", "text": "मैं भी मदद करूँगा। लेकिन साहब, इस बार result आना चाहिए। हर बार मीटिंग करके छोड़ देंगे तो कोई फायदा नहीं।" },
+    { "speaker": "sarpanch", "voice": "rahul", "text": "बिल्कुल सही। इस बार मैं वादा करता हूँ। अगले महीने दूसरे रविवार को फिर मीटिंग रखूँगा। तब तक तीनों कामों पर report दूँगा।" },
+    { "speaker": "ward-member", "voice": "neha", "text": "मीटिंग के minutes नोटिस बोर्ड पर लगाएँगे। सब देख सकते हैं।" },
+    { "speaker": "sarpanch", "voice": "rahul", "text": "अब मीटिंग खत्म। सबको धन्यवाद। संभल कर जाइए।" }
+  ]
+}

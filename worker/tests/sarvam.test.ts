@@ -148,7 +148,7 @@ test('diarization and codemix are requested by default', async () => {
   const params = fake.startedWith.job_parameters;
   assert.equal(params.model, 'saaras:v3');
   assert.equal(params.mode, 'codemix');
-  assert.equal(params.language_code, 'te-IN');
+  assert.equal(params.language_code, 'unknown');
   assert.equal(params.with_diarization, true);
   assert.equal(params.with_timestamps, true);
   // Not knowing the speaker count, we must let Sarvam infer it.

@@ -224,3 +224,42 @@ real facts is unresolved and matters for invariant #9, which requires roll-up
 facts to equal the union of child facts. Re-check on real transcripts.
 
 `scripts/analyze-live.mts` reruns this against any transcript.
+
+## Adding a language
+
+The pipeline is language-agnostic: Sarvam detects the language (`DEFAULT_LANGUAGE =
+'unknown'`), and the analysis prompt names the language it finds from the transcript's
+script (`transcriptLanguage`). Nothing is configured per customer.
+
+To add one — Malayalam here — with no decisions to make:
+
+1. **Write the script.** Copy `tests/fixtures/telangana-script.json` to
+   `malayalam-script.json`, set `languageCode` to the Sarvam code (`ml-IN`), keep the same
+   24 turns and four speakers so the variants stay comparable, and pick voices from the
+   `bulbul:v3` speaker list in `scripts/tts-fixture.mts`.
+
+2. **Render, transcribe, analyse, build** (needs `.env`; `docker start mi-pg-test mi-minio`):
+
+       set -a && . ../.env && set +a
+       npx tsx scripts/tts-fixture.mts tests/fixtures/malayalam-script.json /tmp/malayalam-segments
+       npx tsx scripts/e2e.mts /tmp/malayalam-segments /tmp/malayalam-result.json
+       npx tsx scripts/analyze-live.mts /tmp/malayalam-result.json /tmp/malayalam-analysis.json
+       ls /tmp/malayalam-segments/*.m4a | sed "s|^|file '|;s|$|'|" > /tmp/malayalam-list.txt
+       ffmpeg -f concat -safe 0 -i /tmp/malayalam-list.txt -c copy -y /tmp/malayalam-full.m4a
+       npx tsx scripts/build-report.mts malayalam /tmp/malayalam-result.json \
+         /tmp/malayalam-analysis.json /tmp/malayalam-full.m4a /tmp/malayalam-report.html
+
+3. **Register and publish.** Add an entry to `scripts/reports.json`, rebuild the index, and
+   copy both into the `gh-pages` branch as `malayalam/index.html` and `index.html`:
+
+       npx tsx scripts/build-index.mts scripts/reports.json /tmp/index.html
+
+`build-report.mts` and `build-index.mts` already know Malayalam, Kannada, Bengali, Marathi,
+Gujarati, Punjabi and Odia (name, native name, Noto font), and `analyze.ts` knows their
+scripts. A language outside that set needs one row added to each table.
+
+**The audio is synthetic.** Every generated report says so on its face. These runs exercise
+vocabulary, code-mixing and script rendering; they do not establish recognition accuracy.
+The SPEC.md §11.2 quality gate still needs the client's own recordings — diarization already
+under-counts speakers on clean synthetic audio (3 of 4 on Telangana and Tamil), and real
+recordings will be harder.

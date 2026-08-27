@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import { PGlite } from '@electric-sql/pglite';
 import { migrate } from '../src/migrate.js';
 import type { Sql } from '../src/sql.js';
+import { readdirSync } from 'node:fs';
 import { freshDb, insertMeeting, MEETING } from './harness.js';
 
 test('migrations apply once and are safe to re-run', async () => {
@@ -15,7 +16,11 @@ test('migrations apply once and are safe to re-run', async () => {
   const first = await migrate(sql);
   const second = await migrate(sql);
 
-  assert.deepEqual(first, ['001_phase2.sql', '002_segments.sql', '003_analyses.sql']);
+  // Read from disk: a hardcoded list breaks every time a migration is added.
+  const onDisk = readdirSync(new URL('../src/migrations/', import.meta.url))
+    .filter((f) => f.endsWith('.sql'))
+    .sort();
+  assert.deepEqual(first, onDisk);
   assert.deepEqual(second, []);
   await pg.close();
 });

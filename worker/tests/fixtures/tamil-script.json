@@ -1,0 +1,31 @@
+{
+  "name": "tamil-ward-sabha",
+  "languageCode": "ta-IN",
+  "note": "Tamil with English code-mixing, in spoken register rather than literary Tamil. Same ward-level grievance meeting as telangana-script.json, so the three language variants are comparable. Synthetic — see scripts/tts-fixture.mts.",
+  "turns": [
+    { "speaker": "sarpanch", "voice": "gokul", "text": "அனைவருக்கும் வணக்கம். மீட்டிங்கை ஆரம்பிக்கலாம். இன்னைக்கு மூணு issues இருக்கு — தண்ணீர் சப்ளை, சுத்தம், அப்புறம் ஹெல்த் சென்டர்." },
+    { "speaker": "resident-1", "voice": "shruti", "text": "ஐயா, முதல்ல தண்ணி விஷயத்தை சொல்லுங்க. எங்க தெருவுல பத்து நாளா தண்ணி வரலை. ரொம்ப கஷ்டமா இருக்கு." },
+    { "speaker": "sarpanch", "voice": "gokul", "text": "ஆமா அம்மா, தெரியும். மோட்டார் எரிஞ்சு போச்சு. புது மோட்டாருக்கு அரசாங்கத்துக்கு கடிதம் அனுப்பியிருக்கோம்." },
+    { "speaker": "resident-2", "voice": "vijay", "text": "கடிதம் அனுப்பி ரெண்டு மாசம் ஆகுது அண்ணா. காத்திருந்து காத்திருந்து மக்கள் சலிச்சுப் போயிட்டாங்க. முடிவு எப்ப வரும்?" },
+    { "speaker": "ward-member", "voice": "kavitha", "text": "நான் BDO ஆபீஸ் போயிட்டு வந்தேன். அவங்க சொன்னாங்க — budget approval இந்த மாச கடைசில வரும்னு." },
+    { "speaker": "resident-1", "voice": "shruti", "text": "மாச கடைசின்னா இன்னும் இருபது நாள். அதுவரைக்கும் தண்ணி எப்படி? குழந்தைகளுக்கு குடிக்க தண்ணி இல்லை ஐயா." },
+    { "speaker": "sarpanch", "voice": "gokul", "text": "ஏற்பாடு பண்றேன். நாளைலருந்து டேங்கர் தினமும் ரெண்டு தடவை வரும். காலை ஏழு மணிக்கு, சாயங்காலம் அஞ்சு மணிக்கு." },
+    { "speaker": "resident-2", "voice": "vijay", "text": "டேங்கர் வருது ஆனா எங்க தெரு கடைசி வரைக்கும் வரது இல்லை. டிரைவர் மெயின் ரோட்டுலயே நிறுத்திட்டு போயிடறாரு." },
+    { "speaker": "sarpanch", "voice": "gokul", "text": "அது சரியான வேலை இல்லை. நான் டிரைவர்கிட்ட நேரடியா சொல்றேன். ஒவ்வொரு தெருவுலயும் நிக்கணும். இல்லாட்டி complaint பண்ணுவேன்." },
+    { "speaker": "ward-member", "voice": "kavitha", "text": "ரெண்டாவது issue — சுத்தம். டிரெயினேஜ் முழுசா block ஆயிடுச்சு. கொசு ரொம்ப அதிகமாயிடுச்சு." },
+    { "speaker": "resident-1", "voice": "shruti", "text": "ஆமா. எங்க வீட்டு முன்னாடி குழியில தண்ணி தேங்கியிருக்கு. மலேரியா கேஸ் வருது." },
+    { "speaker": "resident-2", "voice": "vijay", "text": "சுத்தம் பண்ற ஆள் வாரத்துக்கு ஒரு தடவை தான் வர்றாரு. அதுவும் காலி பண்ணாம போயிடறாரு." },
+    { "speaker": "sarpanch", "voice": "gokul", "text": "இப்ப எத்தனை பேர் இருக்காங்க?" },
+    { "speaker": "ward-member", "voice": "kavitha", "text": "மூணு பேர் தான் ஐயா. ஆறு பேர் இருக்கணும். மூணு போஸ்ட் காலியா இருக்கு. வேலைக்கு applications வந்திருக்கு ஆனா file pending." },
+    { "speaker": "sarpanch", "voice": "gokul", "text": "சரி. நான் இந்த வாரமே பஞ்சாயத்து யூனியன் ஆபீஸ் போறேன். அந்த file clear பண்ண வைக்கிறேன்." },
+    { "speaker": "resident-1", "voice": "shruti", "text": "மூணாவது விஷயம் ஹெல்த் சென்டர் ஐயா. sub centre ல டாக்டர் இல்லை. நர்ஸ் ஒருத்தங்க தான் இருக்காங்க." },
+    { "speaker": "resident-2", "voice": "vijay", "text": "டெலிவரி கேஸ் எல்லாம் டவுனுக்கு அனுப்பிடறாங்க. இருபது கிலோமீட்டர். ராத்திரில வண்டி கூட கிடைக்காது." },
+    { "speaker": "ward-member", "voice": "kavitha", "text": "போன வருஷமும் இதே complaint குடுத்தோம். DMO ஆபீஸ்லருந்து இன்னும் பதில் வரலை." },
+    { "speaker": "sarpanch", "voice": "gokul", "text": "இனிமே இப்படி நடக்கக் கூடாது. நாம எல்லாரும் சேர்ந்து கலெக்டர்கிட்ட மனு குடுப்போம். கையெழுத்து வாங்கலாம்." },
+    { "speaker": "resident-1", "voice": "shruti", "text": "அது நல்ல idea. எங்க தெருவுல கையெழுத்து நான் வாங்கிடறேன்." },
+    { "speaker": "resident-2", "voice": "vijay", "text": "நானும் help பண்றேன். ஆனா ஐயா, இந்த தடவை result வரணும். ஒவ்வொரு தடவையும் மீட்டிங் வெச்சு விட்டுட்டா பிரயோஜனம் இல்லை." },
+    { "speaker": "sarpanch", "voice": "gokul", "text": "கண்டிப்பா சரி. இந்த தடவை நான் வாக்கு குடுக்கிறேன். அடுத்த மாசம் ரெண்டாவது ஞாயித்துக்கிழமை மறுபடியும் மீட்டிங் வைக்கிறேன். அதுக்குள்ள மூணு வேலைக்கும் report குடுக்கிறேன்." },
+    { "speaker": "ward-member", "voice": "kavitha", "text": "மீட்டிங் minutes நோட்டீஸ் போர்டுல ஒட்டுவோம். எல்லாரும் பாக்கலாம்." },
+    { "speaker": "sarpanch", "voice": "gokul", "text": "இப்ப மீட்டிங் முடிஞ்சது. எல்லாருக்கும் நன்றி. கவனமா போங்க." }
+  ]
+}

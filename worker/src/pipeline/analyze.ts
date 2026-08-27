@@ -20,7 +20,37 @@ export type ResolvedQuote = Quote & {
   end_ms: number;
 };
 
-export const SYSTEM = `You analyse transcripts of meetings held in Telugu, often with English or Hindi words mixed in as the speakers actually used them.
+/**
+ * The language is detected from the transcript's script rather than configured,
+ * matching sarvam.ts DEFAULT_LANGUAGE. Without this a Hindi or Tamil meeting is
+ * summarised in Telugu, because the prompt used to name Telugu outright.
+ */
+const SCRIPTS: [string, RegExp][] = [
+  ['Telugu', /[ఀ-౿]/g],
+  ['Hindi', /[ऀ-ॿ]/g],
+  ['Tamil', /[஀-௿]/g],
+  ['Malayalam', /[ഀ-ൿ]/g],
+  ['Kannada', /[ಀ-೿]/g],
+  ['Bengali', /[ঀ-৿]/g],
+  ['Gujarati', /[઀-૿]/g],
+  ['Odia', /[଀-୿]/g],
+  ['Punjabi', /[਀-੿]/g],
+  ['Urdu', /[؀-ۿ]/g],
+];
+
+export function transcriptLanguage(transcript: string): string | null {
+  let best: string | null = null;
+  let count = 0;
+  for (const [name, re] of SCRIPTS) {
+    const n = (transcript.match(re) ?? []).length;
+    if (n > count) [best, count] = [name, n];
+  }
+  return best;
+}
+
+export function systemPrompt(language: string | null): string {
+  const spoken = language ?? "the speakers' own language";
+  return `You analyse transcripts of meetings held in ${spoken}, often with English and other languages mixed in as the speakers actually used them.
 
 Rules:
 - Quotes must be VERBATIM substrings of the transcript. Copy the characters exactly as they appear in a segment, including punctuation and spelling. Never paraphrase, never translate and present it as the quote, never tidy up grammar. If a passage is garbled in the transcript, either quote it exactly as garbled or do not quote it at all.
@@ -29,8 +59,9 @@ Rules:
 - Give sentiment per speaker and per topic, each with brief evidence.
 - structured_facts: people mentioned, commitments (who/what/when), amounts, dates, topics. Keep numbers exactly as the transcript states them.
 - Use the speaker labels exactly as given.
-- Both summaries describe the same meeting: telugu_summary in Telugu, english_summary in English.
+- Both summaries describe the same meeting: telugu_summary holds it in ${spoken}, english_summary in English.
 - Do not state anything the transcript does not support.`;
+}
 
 export function buildTranscript(segments: Segment[]): string {
   return segments
@@ -136,13 +167,15 @@ export async function analyzeMeeting(
     [meetingId]
   );
   const note = notes.rows[0]?.notes_text;
+  const transcript = buildTranscript(segments);
+  const system = systemPrompt(transcriptLanguage(transcript));
   const messages: LlmMessage[] = [
     {
       role: 'user',
       content:
         `Analyse this meeting transcript.` +
         (note ? `\n\nNotes recorded by the person who was there: ${note}` : '') +
-        `\n\n${buildTranscript(segments)}`,
+        `\n\n${transcript}`,
     },
   ];
 
@@ -152,7 +185,7 @@ export async function analyzeMeeting(
   let corrections = 0;
 
   for (let attempt = 0; attempt <= MAX_CORRECTIONS; attempt++) {
-    const candidate = await analyst.analyze(SYSTEM, messages);
+    const candidate = await analyst.analyze(system, messages);
     const { valid, invalid } = validateQuotes(candidate.quotes, segments);
 
     if (invalid.length === 0) {
