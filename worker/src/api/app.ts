@@ -3,6 +3,7 @@ import type { Sql } from '../sql.js';
 import { failedJobs } from '../jobs/queue.js';
 import { meetingAudioKey, segmentKey, type Storage } from '../storage.js';
 import { requireUser } from './auth.js';
+import { dashboardRoutes } from './dashboard.js';
 import {
   isUuid,
   segmentUploaded,
@@ -23,6 +24,10 @@ export function createApp(sql: Sql, store: Storage, env = process.env): Express 
   app.get('/health', (_req, res) => {
     res.json({ ok: true });
   });
+
+  // Mounted before requireUser: the dashboard is reached from a browser and
+  // carries its own token (see dashboard.ts), not the device token.
+  app.use('/dashboard', dashboardRoutes(sql, env));
 
   app.use(requireUser(env));
 
