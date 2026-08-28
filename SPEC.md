@@ -1,14 +1,23 @@
 # Meeting Intelligence App — Implementation Specification
 
+> **Status (2026-08-27).** Scope has narrowed since this was written: the product
+> is now five capabilities — speech to text, source-language → English,
+> summarization, sentiment analysis, and search via chatbot. Roll-ups (§11 phase
+> 6) and the Q&A tab as specified (§11 phase 7) are **superseded** by the
+> chatbot; the `summaries` table in §5 is not built. A web dashboard, absent
+> below, is built and replaces the roll-up UI for review. `TODO.md` tracks what
+> is built versus verified. Sections corrected against the live APIs are marked
+> inline.
+
 ## 1. Overview
 
-A cross-platform mobile app (iPhone + Android) for a client who meets ~10 people per day and records ~30-minute conversations, primarily in Telugu (with Telugu-English code-mixing). The system transcribes, analyzes sentiment, and produces bilingual (Telugu + English) summaries with verbatim quotes. All content is stored, searchable, rolled up into daily/weekly/monthly summaries, and queryable via a grounded Q&A chat.
+A cross-platform mobile app (iPhone + Android) for a client who meets ~10 people per day and records ~30-minute conversations in Indic languages with English code-mixing — Telugu (including the Telangana dialect), Hindi and Tamil so far. The language is detected per recording rather than configured. The system transcribes, analyzes sentiment, and produces bilingual (source language + English) summaries with verbatim quotes. All content is stored, searchable, and queryable via a grounded chatbot.
 
 **Non-negotiable principles:**
 
 1. **Offline-first.** Recording and browsing must work with zero connectivity. Rural/mobile networks are assumed flaky.
 2. **Nothing is ever silently lost.** Every recording is durably stored somewhere (phone or cloud) at every moment, with explicit state tracking and retries.
-3. **Validation chain.** Every claim, quote, and summary statement must be traceable back to the exact audio moment (via word-level timestamps). Quotes must be verbatim from transcripts — never paraphrased-as-quote. Q&A answers must cite sources or say "no recorded conversations mention this."
+3. **Validation chain.** Every claim, quote, and summary statement must be traceable back to the audio moment it came from. (Sarvam's `timestamps.words` is chunk-level — a phrase or sentence, not a word — verified against the live API, so playback resolves to the sentence containing the quote.) Quotes must be verbatim from transcripts — never paraphrased-as-quote. Q&A answers must cite sources or say "no recorded conversations mention this."
 4. **No people database.** Speaker identity is meeting-scoped free-text annotation only. No canonical person registry, no profiles. (See §7.)
 5. **API keys never on the device.** All third-party calls (Sarvam, Claude, embeddings) happen server-side.
 
@@ -23,9 +32,9 @@ A cross-platform mobile app (iPhone + Android) for a client who meets ~10 people
 | Audio storage | Cloudflare R2 | S3-compatible. Presigned multipart uploads. Zero egress fees. Originals kept forever (ground truth). |
 | Database | Postgres on Railway | Already provisioned. Enable `pgvector` extension (`CREATE EXTENSION vector;`). Use built-in FTS (`tsvector`). Verify the Railway Postgres image supports pgvector; if not, use the `pgvector/pgvector` image. |
 | Worker/API | Node or Python service on Railway | Same Railway project as Postgres. Runs the pipeline, generates presigned URLs, serves the app API. |
-| Transcription | Sarvam AI Speech-to-Text (Saaras) | Telugu-optimized, speaker diarization, word-level timestamps, code-mixing support. ~₹1.5/min (verify current pricing at dashboard.sarvam.ai). |
+| Transcription | Sarvam AI Speech-to-Text (Saaras) | 22 Indic languages plus Indian English; language auto-detected (`language_code: 'unknown'`). Speaker diarization, chunk-level timestamps (not word-level), code-mixing support. ~₹1.5/min (verify current pricing at dashboard.sarvam.ai). **No European languages** — French and similar need a second provider. |
 | Analysis | Claude API (claude-sonnet-4-6) | Per-meeting analysis, roll-ups, Q&A answering. |
-| Embeddings | Voyage AI (voyage-3) or Cohere embed-multilingual | Must be multilingual so English queries match Telugu content. Called from worker only. |
+| Embeddings | Self-hosted `Xenova/bge-m3` via transformers.js | Superseded Voyage/Cohere — see SCALING.md. 1024 dimensions, matching §5's `vector(1024)`. Multilingual, so English queries match Indic content. Runs in the worker; no fourth processor sees transcripts. |
 | Auth | Firebase Auth (phone OTP, +91 users) | Single primary user initially. See §13 for India-specific details and the v1 device-token shortcut. |
 | Push | Firebase Cloud Messaging | Phase 2. "Your meetings are analyzed" notification. |
 | Monitoring | Sentry (app + worker) + Railway logs | Silent transcription failure is the top risk; alert on it. |
@@ -123,7 +132,7 @@ recorded → queued → uploading (part n/m) → uploaded → transcribing → a
 
 1. **Record** — big record button, live duration, segment-safe indicator.
 2. **Meetings list** — per-recording status chip (e.g., "uploading 4/6", "analyzed"), global banner "3 recordings pending upload". The user must always know what is safe vs. still on the phone.
-3. **Meeting detail** — bilingual summary, sentiment, quotes (each quote tappable → plays exact audio moment via word timestamps), full transcript with speaker labels, notes/metadata editor, speaker labeling (see §7).
+3. **Meeting detail** — bilingual summary, sentiment, quotes (each quote tappable → plays the sentence containing it; see principle 3), full transcript with speaker labels, notes/metadata editor, speaker labeling (see §7).
 4. **Search** — local FTS offline; server semantic search when online.
 5. **Summaries** — daily/weekly/monthly, each claim drills down: month → week → day → meeting → quote → audio.
 6. **Ask (Q&A chat)** — question box, streamed answer, citation chips that jump to transcript segment.
@@ -204,8 +213,8 @@ CREATE TABLE summaries (
 CREATE TABLE chunks (
   id BIGSERIAL PRIMARY KEY,
   meeting_id UUID REFERENCES meetings(id),
-  summary_id BIGINT REFERENCES summaries(id),
-  chunk_type TEXT NOT NULL,               -- transcript | summary | facts
+  -- summary_id BIGINT REFERENCES summaries(id),  -- NOT BUILT: roll-ups are out of scope (006_chunks.sql)
+  chunk_type TEXT NOT NULL,               -- transcript | summary
   text TEXT NOT NULL,                     -- includes speaker names when labeled
   meta JSONB,                             -- {date, speaker_label, display_name, start_ms, end_ms}
   embedding vector(1024)                  -- match embedding model dimension
@@ -236,7 +245,7 @@ Single Railway service. Poll loop: `SELECT ... FROM jobs WHERE status='pending' 
 
 ### 6.1 Stages (each independently retryable)
 
-1. **transcribe** — download audio from R2 → Sarvam STT (Telugu, diarization ON, word timestamps ON) → write `transcript_segments`, flag low-confidence segments → meeting status `transcribed` → enqueue `analyze`. Never re-run if segments already exist (idempotent check).
+1. **transcribe** — download audio from R2 → junk gate → Sarvam STT (language auto-detected, diarization ON, timestamps ON; detected code and probability stored on `meetings`) → write `transcript_segments`, flag low-confidence segments → meeting status `transcribed` → enqueue `analyze`. Never re-run if segments already exist (idempotent check).
 2. **analyze** — build prompt with full transcript + any speaker labels + meeting notes → Claude → write `analyses` → enqueue `embed`. If transcription succeeded but analysis fails, retry ONLY analysis (never re-pay for transcription).
 3. **embed** — chunk transcript per speaker turn or ~500 tokens; include speaker display names in chunk text when available → embeddings API → write `chunks`.
 4. **rollup_daily** — nightly (and on-demand): feed the day's per-meeting summaries + structured_facts (NOT raw transcripts) to Claude → daily summary. Facts arrays are merged/passed upward unchanged — prose can compress, numbers and commitments must not.
@@ -343,12 +352,12 @@ FIREBASE_PROJECT_ID (+ service account), SENTRY_DSN
 ## 11. Build Order (each phase ships something usable)
 
 1. **Record + local storage + list view** — fully offline, segment-safe recording, state machine skeleton.
-2. **Upload + transcription** — presigned multipart to R2, jobs table, Sarvam integration, transcript view. *Validate Telugu ASR quality with the client's real recordings here, before building downstream.* (Compare Sarvam vs Google Chirp on the same files if quality disappoints.)
+2. **Upload + transcription** — presigned multipart to R2, jobs table, Sarvam integration, transcript view. *Validate ASR quality with the client's real recordings here, before building downstream.* **This gate has not been passed** — see TODO.md.* (Compare Sarvam vs Google Chirp on the same files if quality disappoints.)
 3. **Claude per-meeting analysis** — bilingual summaries, verbatim-quote validation, quote→audio playback.
 4. **Search** — local FTS, then Postgres FTS, then embeddings + semantic.
 5. **Speaker labeling + metadata** — labels, autocomplete, display-time substitution, regenerate button.
-6. **Roll-ups** — daily/weekly/monthly with facts pass-through and drill-down UI.
-7. **Q&A tab** — RAG with grounding + citations.
+6. ~~**Roll-ups** — daily/weekly/monthly with facts pass-through and drill-down UI.~~ **Out of scope.** The web dashboard covers review; nothing builds the `summaries` table.
+7. **Chatbot** (was: Q&A tab) — RAG over transcript chunks with grounding + citations. Table exists (`006_chunks.sql`); the embed stage, retrieval and UI are not built.
 8. **Polish** — FCM notifications, Sentry, admin failed-jobs view, backups verified.
 
 ---
