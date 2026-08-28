@@ -69,12 +69,17 @@ export async function transcribeMeeting(
 
     const result = await sarvam.transcribe(audio);
     // The language is detected, not configured (sarvam.ts DEFAULT_LANGUAGE), so
-    // a code-mixed meeting classified as the wrong language has to be visible.
+    // a code-mixed meeting classified as the wrong language has to be visible —
+    // in the log while a run is watched, and stored for filtering afterwards.
     console.log(
       `${meetingId}: sarvam detected ${result.language_code ?? 'no language'}` +
         (result.language_probability != null
           ? ` (p=${result.language_probability.toFixed(2)})`
           : '')
+    );
+    await sql.query(
+      `UPDATE meetings SET language = $2, language_probability = $3 WHERE id = $1`,
+      [meetingId, result.language_code ?? null, result.language_probability ?? null]
     );
     const rows = toSegments(result);
     if (rows.length === 0) {
